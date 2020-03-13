@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GUI-TASK</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <style>
+        body {
+            height: 100vh;
+            width: 100%;
+            min-width: 400px;
+            min-height: 300px;
+            margin: 0;
+        }
+        .top-toolbar, .menu-item {
+            display: -webkit-flex;
+            display: flex;
+            align-items: center;
+        }
+        .top-toolbar {
+            height: 50px;
+            background-color: #93B89D;
+            -webkit-flex-direction: column;
+            flex-direction: row;
+        }
+        .menu-item {
+             text-align: center;
+             height: 100%;
+             justify-content: center;
+             -webkit-flex-grow: 1;
+             flex-grow: 1;
+        }
+        .menu-item:hover {
+            background-color: #4B6B54;
+        }
+        .menu-item span {
+            font-size: 24px;
+            color: white;
+        }
+        .active {
+            background: #4B6B54;
+        }
+        .active span{
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        #progress-bar {
+            height: 3px;
+            width: 0px;
+            background-color: #B85C5D;
+        }
+        .container {
+            display: -webkit-flex;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100% - 50px - 3px);
+            background-color: #ABABAB;
+        }
+        .content {
+            display: -webkit-flex;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-flex-wrap: wrap;
+            flex-wrap: wrap;
+            background-color: #6B6B6B;
+            padding: 40px;
+        }
+        .content span{
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-direction: column;
+            flex-direction: row;
+            color: #F7F7F7;
+            margin: 10px auto;
+        }
+        .content span:nth-child(1){
+            font-weight: bold;
+            font-size: 24px;
+        }
+        .content span:nth-child(3){
+            font-size: 20px;
+        }
+        .line-break {
+            flex-basis: 100%;
+            height: 0;
+        }
+    </style>
+    <script>
+        var menuItems = ["Opt1", "Opt2", "Opt3"];
+        var activeItems = [];
+        var timeoutArray = [];
+
+        //Needs to clear all timeout that has been running in order to be able of update topbar
+        //when has not been completed yet
+        function clearAllTimeout() {
+            $.each(timeoutArray, function(index, value) {
+                clearTimeout(value);
+            });
+        }
+
+        /*
+        Start progress bar animation:
+        Since restrictions were not allowed to use 'setInterval' or CSS transitions, the solution has been provided
+        with 'setTimeout' function, defining as the waiting time is 3s, intervals of 30 ms for each 1% percentage
+        progress
+         */
+        function startProgressBar() {
+            for(var i = 1; i <= 100; i++) {
+                setDelay(i);
+            }
+
+            function setDelay(i) {
+                timeoutArray.push(setTimeout(function(){
+                    $("#progress-bar").width(i + "%");
+                    if(i === 100)
+                        refreshContent();
+                }, 30 * i));
+            }
+        }
+
+        //Select/Deselect all items
+        function toggleAll(menuArray, activeArray){
+            if(menuArray.length === activeArray.length)
+                activeArray = [];
+            else
+                activeArray = menuArray.slice(0);
+            return activeArray;
+        }
+
+        //Update active items array
+        function updateArray(activeArray, menuArray, itemId) {
+            if(activeArray.length === menuArray.length)
+                activeArray = [];
+            var index = activeArray.indexOf(itemId);
+            if(index > -1)
+                activeArray.splice(index, 1);
+            else
+                activeArray.push(itemId);
+            return activeArray;
+        }
+
+        //Clear all CSS classes
+        function clearClasses(menuArray) {
+            $("#all-select-item").removeClass("active");
+            $.each(menuArray, function(index, value) {
+                $("#" + value).removeClass("active");
+            });
+        }
+
+        //Refresh CSS classes in top bar
+        function refreshTopBarStatus(menuArray, activeArray) {
+            if(menuArray.length === activeArray.length)
+                $("#all-select-item").addClass("active");
+            else
+                $.each(activeArray, function(index, value) {
+                    $("#" + value).addClass("active");
+                });
+
+            clearAllTimeout();
+            startProgressBar();
+        }
+
+        //Refresh text in content section
+        function refreshContent() {
+            $("#content-text").text("");
+            $.each(activeItems, function(index, value) {
+                if(index === (activeItems.length - 1))
+                    $("#content-text").text($("#content-text").text() + " " + value + " ");
+                else
+                    $("#content-text").text($("#content-text").text() + " " + value + ",");
+            });
+        }
+
+        $( document ).ready(function() {
+            //Read hash If they exist
+            if(window.location.hash) {
+                menuItems = window.location.hash.substring(1).split("|");
+            }
+            //Initializer for "All" item
+            $("#all-select-item").bind("click", function() {
+                activeItems = toggleAll(menuItems, activeItems);
+                clearClasses(menuItems);
+                refreshTopBarStatus(menuItems, activeItems);
+            });
+            //Initializer for each item left
+            $.each(menuItems, function (index, value) {
+                var item = $("<div id='" + value + "' class='menu-item dynamic-item'><span>" + value + "</span></div>");
+                $(item).bind("click", function() {
+                    activeItems = updateArray(activeItems, menuItems, $(this).attr("id"));
+                    clearClasses(menuItems);
+                    refreshTopBarStatus(menuItems, activeItems);
+                });
+                $("#top-bar").append(item);
+            });
+            //Select by default "All" option
+            $("#all-select-item").trigger("click");
+        });
+    </script>
+</head>
+<body>
+    <div id="top-bar" class="top-toolbar">
+        <div id="all-select-item" class="menu-item">
+            <span>All</span>
+        </div>
+    </div>
+    <div id="progress-bar"></div>
+    <div class="container">
+        <div class="content">
+            <span>Currently selected:</span>
+            <div class="line-break"></div>
+            <span id="content-text"></span>
+        </div>
+    </div>
+</body>
+</html>
